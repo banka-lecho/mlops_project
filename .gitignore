@@ -1,0 +1,12 @@
+# data
+data/*
+
+# venvs
+mlops_venv
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
