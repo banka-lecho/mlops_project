@@ -7,10 +7,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, status, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
+from src.logger import get_logger
 from .schemas import HealthResponse, ModelInfoResponse, PredictResponse
 from src.model import vlm_service, ModelNotLoadedError
 
 from src.config import load_config, model_path
+
+logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,11 +27,17 @@ async def lifespan(app: FastAPI):
     
     try:
         vlm_service.load(model_name=m_path, processor_name=p_path, device=device)
-        print(f"Модель успешно загружена из: {m_path}")
+        logger.info(
+            "Модель успешно загружена из: %s",
+            m_path
+        )
     except Exception as exc:
-        print(f"Ошибка загрузки модели: {exc}")
+        logger.exception(
+                "Ошибка загрузки модели: %s",
+                m_path
+        )
     yield
-    print("Остановка сервиса, очистка ресурсов.")
+    logger.info("Остановка сервиса, очистка ресурсов.")
 
 app = FastAPI(
     title="VLM Inference API", 
@@ -61,6 +70,7 @@ async def health():
 @app.get("/model/info", response_model=ModelInfoResponse, tags=["ops"])
 async def model_info():
     if not vlm_service.is_ready:
+        logger.exception("Модель еще не загружена или не получилось ее загрузить.")
         raise ModelNotLoadedError
     
     return ModelInfoResponse(
@@ -77,6 +87,7 @@ async def predict(
 ):
     """Основной метод инференса."""
     if not vlm_service.is_ready:
+        logger.exception("Модель еще не загружена или не получилось ее загрузить.")
         raise ModelNotLoadedError
 
     try:
@@ -84,6 +95,7 @@ async def predict(
         if not isinstance(label_map, dict) or not label_map:
             raise ValueError
     except ValueError:
+        logger.exception("Неправильный формат входного label_map_json.")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="label_map_json должен быть валидным JSON-словарем"
@@ -93,6 +105,7 @@ async def predict(
         image_bytes = await image.read()
         pil_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     except Exception:
+        logger.exception("Неправильный формат входного изобаражения.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Невозможно прочитать файл как изображение"
@@ -102,6 +115,7 @@ async def predict(
     try:
         predicted_class, probabilities = vlm_service.predict(image=pil_image, label_map=label_map)
     except Exception as exc:
+        logger.exception("Ошибка инференса")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка инференса: {str(exc)}"

@@ -5,6 +5,7 @@ models/*
 # venvs
 mlops_venv
 
+# garbage
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -12,3 +13,4 @@ __pycache__/
 htmlcov/
 *.log
 *.DS_Store
+logs/

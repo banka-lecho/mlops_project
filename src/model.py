@@ -1,7 +1,10 @@
 import torch
-import numpy as np
 from PIL import Image
 from transformers import AutoProcessor, AutoModel
+
+from src.logger import get_logger
+
+logger = get_logger(__name__)
 
 class ModelNotLoadedError(Exception):
     pass
@@ -30,6 +33,7 @@ class VLMService:
 
     def _inference(self, image: Image.Image, label_map: dict[str, str]) -> dict[str, float]:
         if not self.is_ready:
+            logger.exception("Не удалось загрузить модель: %s", self.model_name)
             raise ModelNotLoadedError("Модель не загружена")
 
         clean_labels = list(label_map.keys())
