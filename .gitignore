@@ -1,5 +1,6 @@
 # data
 data/*
+models/*
 
 # venvs
 mlops_venv
@@ -10,3 +11,4 @@ __pycache__/
 .coverage
 htmlcov/
 *.log
+*.DS_Store
