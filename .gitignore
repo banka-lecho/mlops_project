@@ -1,7 +1,3 @@
-# data
-data/*
-models/*
-
 # venvs
 mlops_venv
 
