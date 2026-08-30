@@ -24,7 +24,7 @@ jobs:
           python3 -m venv .dvc-venv
           source .dvc-venv/bin/activate
           pip install --upgrade pip
-          pip install "dvc[gdrive]" pyOpenSSL cryptography
+          pip install "dvc[gdrive]" "pyOpenSSL==24.2.1"
           echo "$PWD/.dvc-venv/bin" >> "$GITHUB_PATH"
 
       - name: Configure DVC Google Drive OAuth client secret
@@ -70,7 +70,7 @@ jobs:
       - name: Show container logs
         if: always()
         run: |
-          docker logs emotion-api
+          docker logs emotion-api || true
 
       - name: Stop container
         if: always()
