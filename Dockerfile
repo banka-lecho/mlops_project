@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src ./src
 COPY config.ini .
 
-RUN mkdir -p /app/models /app/data /app/logs
+RUN mkdir -p /app/expirements /app/data /app/logs
 
 EXPOSE 8000
 

@@ -11,12 +11,12 @@ services:
       - "8000:8000"
 
     volumes:
-      - ./models:/app/models:ro
+      - ./expirements:/app/expirements:ro
       - ./data:/app/data:ro
       - ./logs:/app/logs
 
     environment:
       CONFIG_PATH: /app/config.ini
-      MODEL_PATH: /app/models/clip-vit-base-patch32
+      CHECKPOINT_PATH: /app/expirements/dog_emotion_efficientnet_best.pth
 
     restart: unless-stopped

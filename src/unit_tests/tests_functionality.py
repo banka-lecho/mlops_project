@@ -1,5 +1,4 @@
 import os
-import json
 import pytest
 import requests
 
@@ -28,25 +27,15 @@ def test_model_info(base_url):
 
     assert data["is_ready"] is True
     assert data["device"] in ["cpu", "cuda"]
-    assert data["model_name"]
-    assert data["processor_name"]
-    
-def test_prediction(base_url):
-    label_map = {
-        "happy": "a photo of a happy dog",
-        "sad": "a photo of a sad dog",
-        "angry": "a photo of an angry dog",
-        "relaxed": "a photo of an relaxed dog"
-    }
+    assert data["checkpoint_path"]
+    assert data["classes"]
 
+def test_prediction(base_url):
     with open("tests/data/happy_dog.jpg", "rb") as image:
         response = requests.post(
             f"{base_url}/predict",
             files={
                 "image": ("happy_dog.jpg", image, "image/jpeg")
-            },
-            data={
-                "label_map_json": json.dumps(label_map)
             }
         )
 
@@ -54,21 +43,17 @@ def test_prediction(base_url):
 
     data = response.json()
 
-    assert data["predicted_class"] in label_map
-    assert set(data["probabilities"]) == set(label_map)
+    assert data["predicted_class"]
+    assert data["probabilities"]
 
     assert 0 <= data["process_time_ms"]
-    
-def test_invalid_label_map(base_url):
-    with open("tests/data/happy_dog.jpg", "rb") as image:
-        response = requests.post(
-            f"{base_url}/predict",
-            files={
-                "image": ("happy_dog.jpg", image, "image/jpeg")
-            },
-            data={
-                "label_map_json": "not-json"
-            }
-        )
 
-    assert response.status_code == 422
+def test_invalid_image(base_url):
+    response = requests.post(
+        f"{base_url}/predict",
+        files={
+            "image": ("not_an_image.txt", b"not an image", "text/plain")
+        }
+    )
+
+    assert response.status_code == 400

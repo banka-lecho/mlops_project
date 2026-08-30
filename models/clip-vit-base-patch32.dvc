@@ -1,6 +1,0 @@
-outs:
-- md5: 57dbf86a26b4b9059af0ab608f065127.dir
-  size: 1819547532
-  nfiles: 37
-  hash: md5
-  path: clip-vit-base-patch32

@@ -33,36 +33,36 @@ def resolve(rel_path: Path) -> Path:
     return p if p.is_absolute() else ROOT / p
 
 
-def model_path(
+def checkpoint_path(
     cfg: configparser.ConfigParser = None
 ) -> Path:
     """
-    Путь к локальной модели.
+    Путь к чекпоинту обученного классификатора (.pth).
 
-    MODEL_PATH из окружения имеет приоритет над config.ini.
+    CHECKPOINT_PATH из окружения имеет приоритет над config.ini.
     """
-    env = os.getenv("MODEL_PATH")
+    env = os.getenv("CHECKPOINT_PATH")
 
     if env:
         path = Path(env)
     else:
         cfg = cfg or load_config()
 
-        raw_path = cfg["MODEL"].get("model_path", "").strip()
+        raw_path = cfg["MODEL"].get("checkpoint_path", "").strip()
 
         if not raw_path:
-            raise ValueError("MODEL.model_path не указан в config.ini")
+            raise ValueError("MODEL.checkpoint_path не указан в config.ini")
 
-        path =  resolve(raw_path)
+        path = resolve(raw_path)
 
     if not path.exists():
         raise FileNotFoundError(
-            f"Модель не найдена по пути: {path}"
+            f"Чекпоинт модели не найден по пути: {path}"
         )
 
-    if not path.is_dir():
+    if not path.is_file():
         raise ValueError(
-            f"model_path должен указывать на директорию модели: {path}"
+            f"checkpoint_path должен указывать на файл чекпоинта: {path}"
         )
 
     return path
