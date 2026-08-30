@@ -52,7 +52,7 @@ jobs:
 
       - name: Run functional tests
         run: |
-          pytest src/unit_tests/tests_functionality -v
+          pytest src/unit_tests/tests_functionality.py -v
 
       - name: Show container logs
         if: always()
