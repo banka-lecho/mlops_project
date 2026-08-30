@@ -19,11 +19,18 @@ jobs:
         run: |
           docker pull shpilevaanastasiya/vlm-api:latest
 
+      - name: Download model
+        run: |
+          pip install huggingface_hub
+          hf download openai/clip-vit-base-patch32 \
+            --local-dir ./models/clip-vit-base-patch32
+
       - name: Start container
         run: |
           docker run -d \
             --name vlm-api \
             -p 8000:8000 \
+            -v "${{ github.workspace }}/models:/app/models:ro" \
             shpilevaanastasiya/vlm-api:latest
 
       - name: Wait for API
