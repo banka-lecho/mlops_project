@@ -21,7 +21,7 @@ jobs:
 
       - name: Install DVC (Google Drive support)
         run: |
-          pip install "dvc[gdrive]"
+          pip install --upgrade "dvc[gdrive]" pyOpenSSL cryptography
 
       - name: Configure DVC Google Drive OAuth client secret
         run: |
