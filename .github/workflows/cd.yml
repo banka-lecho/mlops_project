@@ -21,7 +21,11 @@ jobs:
 
       - name: Install DVC (Google Drive support)
         run: |
-          pip install --upgrade "dvc[gdrive]" pyOpenSSL cryptography
+          python3 -m venv .dvc-venv
+          source .dvc-venv/bin/activate
+          pip install --upgrade pip
+          pip install "dvc[gdrive]" pyOpenSSL cryptography
+          echo "$PWD/.dvc-venv/bin" >> "$GITHUB_PATH"
 
       - name: Configure DVC Google Drive OAuth client secret
         run: |
