@@ -51,11 +51,9 @@ def model_path(
         raw_path = cfg["MODEL"].get("model_path", "").strip()
 
         if not raw_path:
-            raise ValueError(
-                "MODEL.model_path не указан в config.ini"
-            )
+            raise ValueError("MODEL.model_path не указан в config.ini")
 
-        path = resolve(raw_path)
+        path =  resolve(raw_path)
 
     if not path.exists():
         raise FileNotFoundError(

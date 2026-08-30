@@ -1,5 +1,5 @@
 [core]
     remote = minio
 ['remote "minio"']
-    url = s3://dvc-data
+    url = s3://cat-dog-bucket
     endpointurl = http://localhost:9000

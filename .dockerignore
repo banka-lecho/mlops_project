@@ -1,0 +1,17 @@
+mlops_venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+.git/
+.gitignore
+
+data/
+models/
+logs/
+
+notebooks/
+*.ipynb
+
+.dvc/cache/
