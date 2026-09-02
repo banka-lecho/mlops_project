@@ -19,18 +19,31 @@ jobs:
         run: |
           docker pull shpilevaanastasiya/vlm-api:latest
 
-      - name: Download model
+      - name: Install DVC (Google Drive support)
         run: |
-          pip install huggingface_hub
-          hf download openai/clip-vit-base-patch32 \
-            --local-dir ./models/clip-vit-base-patch32
+          python3 -m venv .dvc-venv
+          source .dvc-venv/bin/activate
+          pip install --upgrade pip
+          pip install "dvc[gdrive]" "pyOpenSSL==24.2.1"
+          echo "$PWD/.dvc-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Configure DVC Google Drive OAuth client secret
+        run: |
+          dvc remote modify --local gdrive gdrive_client_secret "${{ secrets.GDRIVE_CLIENT_SECRET }}"
+
+      - name: Pull trained checkpoint from DVC remote
+        env:
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+        run: |
+          dvc pull expirements/dog_emotion_efficientnet_best.pth.dvc
 
       - name: Start container
         run: |
           docker run -d \
-            --name vlm-api \
+            --name emotion-api \
             -p 8000:8000 \
-            -v "${{ github.workspace }}/models:/app/models:ro" \
+            -v "${{ github.workspace }}/expirements:/app/expirements:ro" \
+            -e CHECKPOINT_PATH=/app/expirements/dog_emotion_efficientnet_best.pth \
             shpilevaanastasiya/vlm-api:latest
 
       - name: Wait for API
@@ -43,7 +56,7 @@ jobs:
           done
 
           echo "API did not start"
-          docker logs vlm-api
+          docker logs emotion-api
           exit 1
 
       - name: Install test dependencies
@@ -57,10 +70,10 @@ jobs:
       - name: Show container logs
         if: always()
         run: |
-          docker logs vlm-api
+          docker logs emotion-api || true
 
       - name: Stop container
         if: always()
         run: |
-          docker stop vlm-api || true
-          docker rm vlm-api || true
+          docker stop emotion-api || true
+          docker rm emotion-api || true

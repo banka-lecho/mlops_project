@@ -5,9 +5,9 @@ class HealthResponse(BaseModel):
     model_loaded: bool
 
 class ModelInfoResponse(BaseModel):
-    model_name: str
-    processor_name: str
+    checkpoint_path: str
     device: str
+    classes: list[str]
     is_ready: bool
 
 class PredictResponse(BaseModel):

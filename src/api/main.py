@@ -1,17 +1,16 @@
 import time
-import json
 import io
 from PIL import Image
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, status, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Request, status, UploadFile, File
 from fastapi.responses import JSONResponse
 
 from src.logger import get_logger
 from .schemas import HealthResponse, ModelInfoResponse, PredictResponse
-from src.model import vlm_service, ModelNotLoadedError
+from src.model import classifier_service, ModelNotLoadedError
 
-from src.config import load_config, model_path
+from src.config import load_config, checkpoint_path
 
 logger = get_logger(__name__)
 
@@ -19,28 +18,26 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Артефакт грузится один раз при старте."""
     cfg = load_config()
-    
-    m_path = str(model_path(cfg))
-    
-    p_path = cfg["MODEL"].get("processor_path", m_path)
+
+    ckpt_path = str(checkpoint_path(cfg))
     device = cfg["MODEL"].get("device", "cuda")
-    
+
     try:
-        vlm_service.load(model_name=m_path, processor_name=p_path, device=device)
+        classifier_service.load(checkpoint_path=ckpt_path, device=device)
         logger.info(
             "Модель успешно загружена из: %s",
-            m_path
+            ckpt_path
         )
     except Exception as exc:
         logger.exception(
                 "Ошибка загрузки модели: %s",
-                m_path
+                ckpt_path
         )
     yield
     logger.info("Остановка сервиса, очистка ресурсов.")
 
 app = FastAPI(
-    title="VLM Inference API", 
+    title="Dog Emotion Classifier API",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -63,43 +60,31 @@ async def model_not_loaded_handler(request: Request, exc: ModelNotLoadedError):
 @app.get("/health", response_model=HealthResponse, tags=["ops"])
 async def health():
     return HealthResponse(
-        status="ok" if vlm_service.is_ready else "degraded",
-        model_loaded=vlm_service.is_ready,
+        status="ok" if classifier_service.is_ready else "degraded",
+        model_loaded=classifier_service.is_ready,
     )
 
 @app.get("/model/info", response_model=ModelInfoResponse, tags=["ops"])
 async def model_info():
-    if not vlm_service.is_ready:
+    if not classifier_service.is_ready:
         logger.exception("Модель еще не загружена или не получилось ее загрузить.")
         raise ModelNotLoadedError
-    
+
     return ModelInfoResponse(
-        model_name=vlm_service.model_name,
-        processor_name=vlm_service.processor_name,
-        device=vlm_service.device,
-        is_ready=vlm_service.is_ready
+        checkpoint_path=classifier_service.checkpoint_path,
+        device=classifier_service.device,
+        classes=[classifier_service.id2label[i] for i in range(len(classifier_service.id2label))],
+        is_ready=classifier_service.is_ready
     )
 
 @app.post("/predict", response_model=PredictResponse, tags=["inference"])
 async def predict(
-    image: UploadFile = File(..., description="Изображение для анализа"),
-    label_map_json: str = Form(..., description='JSON строка, например: {"happy": "a picture of a happy dog", "sad": "a picture of a sad dog"')
+    image: UploadFile = File(..., description="Изображение для анализа")
 ):
     """Основной метод инференса."""
-    if not vlm_service.is_ready:
+    if not classifier_service.is_ready:
         logger.exception("Модель еще не загружена или не получилось ее загрузить.")
         raise ModelNotLoadedError
-
-    try:
-        label_map = json.loads(label_map_json)
-        if not isinstance(label_map, dict) or not label_map:
-            raise ValueError
-    except ValueError:
-        logger.exception("Неправильный формат входного label_map_json.")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="label_map_json должен быть валидным JSON-словарем"
-        )
 
     try:
         image_bytes = await image.read()
@@ -113,7 +98,7 @@ async def predict(
 
     started = time.perf_counter()
     try:
-        predicted_class, probabilities = vlm_service.predict(image=pil_image, label_map=label_map)
+        predicted_class, probabilities = classifier_service.predict(image=pil_image)
     except Exception as exc:
         logger.exception("Ошибка инференса")
         raise HTTPException(
