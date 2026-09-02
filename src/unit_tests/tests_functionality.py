@@ -1,6 +1,24 @@
 import os
+import csv
 import pytest
 import requests
+
+from pathlib import Path
+
+SMOKE_DIR = Path("tests/data/smoke")
+CONFIDENCE_THRESHOLD = 0.7
+
+
+def _load_smoke_cases():
+    manifest = SMOKE_DIR / "expected.csv"
+    if not manifest.exists():
+        return []
+
+    with open(manifest, newline="", encoding="utf-8") as f:
+        return [(row["image_name"], row["label"]) for row in csv.DictReader(f)]
+
+
+SMOKE_CASES = _load_smoke_cases()
 
 
 @pytest.fixture
@@ -57,3 +75,29 @@ def test_invalid_image(base_url):
     )
 
     assert response.status_code == 400
+
+
+@pytest.mark.skipif(not SMOKE_CASES, reason=f"Нет фикстуры {SMOKE_DIR}/expected.csv")
+@pytest.mark.parametrize("image_name,expected_label", SMOKE_CASES)
+def test_confident_prediction_per_class(base_url, image_name, expected_label):
+    with open(SMOKE_DIR / image_name, "rb") as image:
+        response = requests.post(
+            f"{base_url}/predict",
+            files={"image": (image_name, image, "image/jpeg")}
+        )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    probabilities = data["probabilities"]
+
+    assert data["predicted_class"] == expected_label, (
+        f"{image_name}: ожидался класс '{expected_label}', "
+        f"получен '{data['predicted_class']}'. Вероятности: {probabilities}"
+    )
+
+    confidence = probabilities[expected_label]
+    assert confidence >= CONFIDENCE_THRESHOLD, (
+        f"{image_name}: уверенность в классе '{expected_label}' = {confidence:.4f} "
+        f"< {CONFIDENCE_THRESHOLD}. Вероятности: {probabilities}"
+    )
